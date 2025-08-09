@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, Scissors, User, Calendar, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import confallonyLogo from "@/assets/confallony-logo.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,8 +15,12 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <Scissors className="h-8 w-8 text-primary" />
+          <Link to="/" className="flex items-center space-x-3">
+            <img 
+              src={confallonyLogo} 
+              alt="Confallony Logo" 
+              className="h-10 w-auto"
+            />
             <span className="text-xl font-playfair font-bold text-foreground">
               Barbearia <span className="text-primary">Confallony</span>
             </span>

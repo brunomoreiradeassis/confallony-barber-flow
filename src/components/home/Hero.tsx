@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Scissors, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/barbershop-hero.jpg";
+import confallonyLogo from "@/assets/confallony-logo.png";
 
 const Hero = () => {
   return (
@@ -20,8 +21,15 @@ const Hero = () => {
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="space-y-8">
-          {/* Main Heading */}
-          <div className="space-y-4">
+          {/* Logo and Main Heading */}
+          <div className="space-y-6">
+            <div className="flex justify-center">
+              <img 
+                src={confallonyLogo} 
+                alt="Confallony Barbearia Logo" 
+                className="h-24 sm:h-32 lg:h-40 w-auto"
+              />
+            </div>
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-playfair font-bold text-foreground text-glow">
               Barbearia <span className="text-primary">Confallony</span>
             </h1>
