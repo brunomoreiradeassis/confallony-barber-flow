@@ -61,7 +61,17 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				'barbershop-gold': {
+					DEFAULT: 'hsl(var(--barbershop-gold))',
+					foreground: 'hsl(var(--barbershop-gold-foreground))'
+				},
+				'barbershop-dark': 'hsl(var(--barbershop-dark))',
+				'barbershop-highlight': 'hsl(var(--barbershop-highlight))'
+			},
+			fontFamily: {
+				'inter': ['Inter', 'sans-serif'],
+				'playfair': ['Playfair Display', 'serif']
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

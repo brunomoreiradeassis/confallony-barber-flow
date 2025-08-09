@@ -2,41 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Barbearia Confallony Design System - Dark, Professional Theme */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Barbearia Confallony Color Palette */
+    --background: 210 24% 8%;
+    --foreground: 210 40% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 210 24% 10%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 210 24% 10%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 192 100% 45%;
+    --primary-foreground: 210 24% 8%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 20% 15%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 20% 12%;
+    --muted-foreground: 210 15% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 192 85% 35%;
+    --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 62.8% 50%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 210 20% 18%;
+    --input: 210 20% 15%;
+    --ring: 192 100% 45%;
 
-    --radius: 0.5rem;
+    /* Barbershop Specific Colors */
+    --barbershop-gold: 45 95% 68%;
+    --barbershop-gold-foreground: 210 24% 8%;
+    --barbershop-dark: 210 30% 6%;
+    --barbershop-highlight: 192 100% 60%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--barbershop-highlight)));
+    --gradient-dark: linear-gradient(180deg, hsl(var(--background)), hsl(var(--barbershop-dark)));
+    --gradient-gold: linear-gradient(135deg, hsl(var(--barbershop-gold)), hsl(45 85% 58%));
+
+    /* Effects */
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.3);
+    --shadow-glow: 0 0 40px hsl(var(--barbershop-highlight) / 0.2);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +115,62 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-playfair;
+  }
+}
+
+@layer components {
+  /* Hero Section Styles */
+  .hero-gradient {
+    background: var(--gradient-primary);
+  }
+
+  .barbershop-card {
+    @apply bg-card border border-border rounded-lg p-6 shadow-lg hover:shadow-xl;
+    box-shadow: var(--shadow-elegant);
+    transition: var(--transition-smooth);
+  }
+
+  .barbershop-card:hover {
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-2px);
+  }
+
+  /* Button Variants */
+  .btn-hero {
+    background: var(--gradient-primary);
+    @apply text-primary-foreground font-semibold px-8 py-3 rounded-lg;
+    box-shadow: var(--shadow-elegant);
+    transition: var(--transition-smooth);
+  }
+
+  .btn-hero:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .btn-gold {
+    background: var(--gradient-gold);
+    @apply text-barbershop-gold-foreground font-semibold px-6 py-3 rounded-lg;
+    transition: var(--transition-smooth);
+  }
+
+  /* Service Card Animation */
+  .service-card {
+    @apply transform transition-all duration-300 hover:scale-105;
+  }
+
+  /* Navbar Glass Effect */
+  .navbar-glass {
+    @apply backdrop-blur-md bg-background/80 border-b border-border/50;
+  }
+
+  /* Text Glow Effect */
+  .text-glow {
+    text-shadow: 0 0 20px hsl(var(--barbershop-highlight) / 0.5);
   }
 }
