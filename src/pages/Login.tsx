@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,15 +13,18 @@ import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false
   });
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     // Basic validation
     if (!formData.email || !formData.password) {
@@ -28,17 +33,39 @@ const Login = () => {
         description: "Por favor, preencha todos os campos.",
         variant: "destructive"
       });
+      setIsLoading(false);
       return;
     }
 
-    // Simulate login process
-    toast({
-      title: "Login realizado com sucesso!",
-      description: "Redirecionando para sua conta...",
-    });
+    try {
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      
+      toast({
+        title: "Login realizado com sucesso!",
+        description: "Bem-vindo de volta!",
+      });
 
-    // In a real app, this would handle the login logic
-    console.log("Login attempt:", formData);
+      navigate("/");
+    } catch (error: any) {
+      console.error("Erro no login:", error);
+      let errorMessage = "Erro no login. Verifique suas credenciais.";
+      
+      if (error.code === "auth/user-not-found") {
+        errorMessage = "Usuário não encontrado.";
+      } else if (error.code === "auth/wrong-password") {
+        errorMessage = "Senha incorreta.";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Email inválido.";
+      }
+
+      toast({
+        title: "Erro no login",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
+
+    setIsLoading(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,8 +160,12 @@ const Login = () => {
                 </div>
 
                 {/* Submit Button */}
-                <Button type="submit" className="w-full btn-hero">
-                  Entrar
+                <Button 
+                  type="submit" 
+                  className="w-full btn-hero"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Entrando..." : "Entrar"}
                 </Button>
               </form>
 
