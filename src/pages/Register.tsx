@@ -90,7 +90,6 @@ const Register = () => {
         dataRegistro: new Date(),
         pontosFidelidade: 0,
         saldoCarteira: 0,
-        historicoAgendamentos: [],
         ativo: true
       });
 
@@ -99,7 +98,7 @@ const Register = () => {
         description: "Bem-vindo à Barbearia Confallony!",
       });
 
-      navigate("/");
+      navigate("/queue");
     } catch (error: any) {
       console.error("Erro no cadastro:", error);
       toast({

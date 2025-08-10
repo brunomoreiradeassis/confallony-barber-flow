@@ -1,32 +1,47 @@
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, addDoc, getDocs, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Scissors, Clock, CreditCard, Smartphone, Banknote, DollarSign, Calendar as CalendarIcon, User } from "lucide-react";
-import { format, addDays, isToday, isTomorrow } from "date-fns";
+import { Scissors, Clock, CreditCard, Smartphone, Banknote, DollarSign, Calendar as CalendarIcon } from "lucide-react";
+import { format, addDays, isToday, isTomorrow, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Service {
   id: string;
   nome: string;
   preco: number;
-  duracao: number; // em minutos
+  duracao: number;
   descricao: string;
 }
 
 interface TimeSlot {
   time: string;
   available: boolean;
+}
+
+interface Appointment {
+  id?: string;
+  usuario_id: string;
+  usuario_nome: string;
+  servico_id: string;
+  servico_nome: string;
+  preco: number;
+  data: Date;
+  horario: string;
+  forma_pagamento: string;
+  status: 'aguardando' | 'em_atendimento' | 'concluido' | 'confirmado';
+  data_criacao: Date;
+  duracao: number;
+  presente: boolean;
+  timestamp: number;
 }
 
 const Booking = () => {
@@ -40,8 +55,8 @@ const Booking = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]);
 
-  // Dados mock dos serviços
   const mockServices: Service[] = [
     { id: "1", nome: "Corte Masculino", preco: 30, duracao: 30, descricao: "Corte tradicional masculino" },
     { id: "2", nome: "Barba Completa", preco: 25, duracao: 30, descricao: "Aparar e modelar barba" },
@@ -52,24 +67,70 @@ const Booking = () => {
 
   useEffect(() => {
     setServices(mockServices);
+    fetchExistingAppointments();
   }, []);
+
+  const fetchExistingAppointments = async () => {
+    try {
+      const q = query(collection(db, 'fila'));
+      const querySnapshot = await getDocs(q);
+      const appointments: Appointment[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        appointments.push({
+          id: doc.id,
+          usuario_id: data.usuario_id,
+          usuario_nome: data.usuario_nome,
+          servico_id: data.servico_id,
+          servico_nome: data.servico_nome,
+          preco: data.preco,
+          data: data.data.toDate(),
+          horario: data.horario,
+          forma_pagamento: data.forma_pagamento,
+          status: data.status,
+          data_criacao: data.data_criacao.toDate(),
+          duracao: data.duracao,
+          presente: data.presente || false,
+          timestamp: data.timestamp || data.data_criacao.toMillis()
+        });
+      });
+      
+      setExistingAppointments(appointments);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os agendamentos existentes.",
+        variant: "destructive"
+      });
+    }
+  };
 
   useEffect(() => {
     if (selectedDate) {
       generateTimeSlots();
     }
-  }, [selectedDate]);
+  }, [selectedDate, existingAppointments]);
 
   const generateTimeSlots = () => {
+    if (!selectedDate) return;
+
     const slots: TimeSlot[] = [];
     const startHour = 8;
-    const endHour = 18;
+    const endHour = 19;
     
-    for (let hour = startHour; hour < endHour; hour++) {
+    const dateAppointments = existingAppointments.filter(app => 
+      isSameDay(app.data, selectedDate)
+    );
+    const bookedTimes = dateAppointments.map(app => app.horario);
+
+    for (let hour = startHour; hour <= endHour; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
+        if (hour === endHour && minute > 30) continue;
+        
         const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        // Mock availability - em produção, verificar agendamentos existentes
-        const available = Math.random() > 0.3;
+        const available = !bookedTimes.includes(time);
         slots.push({ time, available });
       }
     }
@@ -94,10 +155,55 @@ const Booking = () => {
   };
 
   const handleConfirmBooking = async () => {
-    if (!currentUser || !selectedService || !selectedDate || !selectedTime || !paymentMethod) {
+    if (!currentUser) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos.",
+        description: "Você precisa estar logado para agendar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!userData) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar seus dados. Por favor, recarregue a página.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedService) {
+      toast({
+        title: "Erro",
+        description: "Selecione um serviço.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedDate) {
+      toast({
+        title: "Erro",
+        description: "Selecione uma data.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedTime) {
+      toast({
+        title: "Erro",
+        description: "Selecione um horário.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!paymentMethod) {
+      toast({
+        title: "Erro",
+        description: "Selecione uma forma de pagamento.",
         variant: "destructive"
       });
       return;
@@ -105,31 +211,39 @@ const Booking = () => {
 
     setIsLoading(true);
     try {
-      await addDoc(collection(db, 'agendamentos'), {
+      const appointmentDate = new Date(selectedDate);
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      appointmentDate.setHours(hours, minutes, 0, 0);
+
+      const newAppointment: Appointment = {
         usuario_id: currentUser.uid,
-        usuario_nome: userData?.nome,
+        usuario_nome: userData.nome, // Usando o nome do usuário do AuthContext
         servico_id: selectedService.id,
         servico_nome: selectedService.nome,
         preco: selectedService.preco,
-        data: selectedDate,
+        data: appointmentDate,
         horario: selectedTime,
         forma_pagamento: paymentMethod,
-        status: 'agendado',
+        status: 'aguardando',
         data_criacao: new Date(),
-        duracao: selectedService.duracao
-      });
+        duracao: selectedService.duracao,
+        presente: false,
+        timestamp: new Date().getTime()
+      };
+
+      await addDoc(collection(db, 'fila'), newAppointment);
 
       toast({
         title: "Agendamento confirmado!",
-        description: `Seu agendamento para ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })} às ${selectedTime} foi confirmado.`
+        description: `Olá ${userData.nome}, seu agendamento para ${selectedService.nome} no dia ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })} às ${selectedTime} foi confirmado.`
       });
 
-      // Reset form
       setStep(1);
       setSelectedService(null);
       setSelectedDate(new Date());
       setSelectedTime("");
       setPaymentMethod("");
+      await fetchExistingAppointments(); // Atualiza a lista de agendamentos
     } catch (error) {
       console.error("Error creating booking:", error);
       toast({
@@ -293,28 +407,28 @@ const Booking = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Label htmlFor="pix" className="cursor-pointer">
                         <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-muted/50">
-                          <RadioGroupItem value="pix" id="pix" />
+                          <RadioGroupItem value="PIX" id="pix" />
                           <Smartphone className="h-5 w-5 text-primary" />
                           <span>PIX</span>
                         </div>
                       </Label>
                       <Label htmlFor="credito" className="cursor-pointer">
                         <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-muted/50">
-                          <RadioGroupItem value="credito" id="credito" />
+                          <RadioGroupItem value="Cartão de Crédito" id="credito" />
                           <CreditCard className="h-5 w-5 text-primary" />
                           <span>Cartão de Crédito</span>
                         </div>
                       </Label>
                       <Label htmlFor="debito" className="cursor-pointer">
                         <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-muted/50">
-                          <RadioGroupItem value="debito" id="debito" />
+                          <RadioGroupItem value="Cartão de Débito" id="debito" />
                           <DollarSign className="h-5 w-5 text-primary" />
                           <span>Cartão de Débito</span>
                         </div>
                       </Label>
                       <Label htmlFor="dinheiro" className="cursor-pointer">
                         <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-muted/50">
-                          <RadioGroupItem value="dinheiro" id="dinheiro" />
+                          <RadioGroupItem value="Dinheiro Físico" id="dinheiro" />
                           <Banknote className="h-5 w-5 text-primary" />
                           <span>Dinheiro</span>
                         </div>

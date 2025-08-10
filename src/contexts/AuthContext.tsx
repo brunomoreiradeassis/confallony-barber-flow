@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const userDoc = await getDoc(doc(db, 'usuarios', currentUser.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
-          setUserData({
+          const userData = {
             uid: currentUser.uid,
             nome: data.nome,
             email: data.email,
@@ -57,31 +57,43 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             isAdmin: data.isAdmin || false,
             saldo: data.saldo || 0,
             pontos_fidelidade: data.pontos_fidelidade || 0,
-            avatar_url: data.avatar_url || null
-          });
+            avatar_url: data.avatar_url || ''
+          };
+          setUserData(userData);
+          sessionStorage.setItem('userData', JSON.stringify(userData));
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
       }
+    } else {
+      sessionStorage.removeItem('userData');
     }
   };
 
   const logout = async () => {
     try {
       await signOut(auth);
+      setCurrentUser(null);
       setUserData(null);
+      sessionStorage.removeItem('userData');
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
 
   useEffect(() => {
+    const storedUserData = sessionStorage.getItem('userData');
+    if (storedUserData) {
+      setUserData(JSON.parse(storedUserData));
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
         await refreshUserData();
       } else {
         setUserData(null);
+        sessionStorage.removeItem('userData');
       }
       setLoading(false);
     });
@@ -99,7 +111,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

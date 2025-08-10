@@ -51,7 +51,7 @@ const Login = () => {
       if (userDoc.exists() && userDoc.data().isAdmin) {
         navigate("/admin");
       } else {
-        navigate("/");
+        navigate("/queue");
       }
     } catch (error: any) {
       console.error("Erro no login:", error);

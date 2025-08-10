@@ -54,16 +54,13 @@ const InfiniteSlidingGallery = () => {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-
-  // Mantém as imagens duplicadas para loop contínuo
   const cards = [...clients, ...clients];
-
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [renderPosition, setRenderPosition] = useState(0);
-
-  // Ref para posição interna sem re-render
+  const [paused, setPaused] = useState(false);
   const positionRef = useRef(0);
 
+  // Troca de imagens
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex(prev => (prev + 1) % 6);
@@ -71,13 +68,14 @@ const InfiniteSlidingGallery = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Movimento infinito
   useEffect(() => {
     if (!containerRef.current || !contentRef.current) return;
 
-    const cardWidth = 300 + 64; // Largura do card + margens
+    const cardWidth = 300 + 64;
     const totalWidth = cardWidth * cards.length;
     const halfWidth = totalWidth / 2;
-    const speed = 80; // px/s
+    const speed = 80;
 
     let animationFrame: number;
     let lastTimestamp = 0;
@@ -87,25 +85,34 @@ const InfiniteSlidingGallery = () => {
       const deltaTime = timestamp - lastTimestamp;
       lastTimestamp = timestamp;
 
-      positionRef.current -= (speed * deltaTime) / 1000;
-
-      if (Math.abs(positionRef.current) >= halfWidth) {
-        positionRef.current += halfWidth;
+      if (!paused) {
+        positionRef.current -= (speed * deltaTime) / 1000;
+        if (Math.abs(positionRef.current) >= halfWidth) {
+          positionRef.current += halfWidth;
+        }
+        setRenderPosition(positionRef.current);
       }
-
-      // Atualiza a posição para renderização
-      setRenderPosition(positionRef.current);
 
       animationFrame = requestAnimationFrame(animate);
     };
 
     animationFrame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrame);
-  }, [cards]);
+  }, [cards, paused]);
 
   return (
-    <div className="w-full bg-background py-12 overflow-hidden">
-      <div ref={containerRef} className="w-full h-[400px] relative">
+    <div className="w-full bg-background py-20 overflow-hidden">
+      <div className="text-center space-y-1">
+        <h2 className="text-3xl sm:text-4xl font-playfair font-bold text-foreground">
+          Veja os resultados <span className="text-primary">dos nossos clientes</span>
+        </h2>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto py-2">
+          Após aquele talento na <span className="text-primary">Barbearia Confallony</span>
+        </p>
+      </div>
+
+      {/* Aumentei altura do container */}
+      <div ref={containerRef} className="w-full h-[800px] relative">
         <div
           ref={contentRef}
           className="absolute flex h-full items-center"
@@ -117,16 +124,27 @@ const InfiniteSlidingGallery = () => {
           {cards.map((client, index) => (
             <div
               key={`${client.id}-${index}`}
-              className="mx-8 w-[300px] h-[350px] flex-shrink-0 relative group"
+              className="mx-8 w-[350px] h-[500px] flex-shrink-0 relative group 
+                         transition-transform duration-300 hover:scale-110"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
             >
-              <div className="relative w-full h-full overflow-hidden rounded-lg">
+              {/* Glow gradiente espalhado por baixo */}
+              <div className="absolute -inset-10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0">
+                <div className="w-full h-full rounded-xl bg-gradient-to-r from-pink-500 via-yellow-500 to-purple-500 
+                                bg-[length:200%_200%] animate-[gradient-shift_4s_linear_infinite] blur-[100px] opacity-60">
+                </div>
+              </div>
+
+              {/* Card principal */}
+              <div className="relative w-full h-full overflow-hidden rounded-lg 
+                              border border-gray-200 dark:border-gray-700 
+                              group-hover:border-transparent transition-all duration-300 z-10">
                 {client.images.map((image, imgIndex) => (
                   <div
                     key={imgIndex}
                     className={`absolute inset-0 transition-opacity duration-1000 ${
-                      imgIndex === currentImageIndex
-                        ? 'opacity-100'
-                        : 'opacity-0'
+                      imgIndex === currentImageIndex ? 'opacity-100' : 'opacity-0'
                     }`}
                   >
                     <img
@@ -141,6 +159,17 @@ const InfiniteSlidingGallery = () => {
           ))}
         </div>
       </div>
+
+      {/* Configuração da animação do gradiente */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+        `
+      }} />
     </div>
   );
 };

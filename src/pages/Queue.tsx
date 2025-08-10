@@ -20,9 +20,10 @@ interface QueueItem {
   horario: string;
   status: 'aguardando' | 'em_atendimento' | 'concluido' | 'confirmado';
   posicao: number;
-  tempo_estimado: number; // em minutos
+  tempo_estimado: number;
   data: Date;
   presente: boolean;
+  timestamp: number;
 }
 
 const Queue = () => {
@@ -32,93 +33,96 @@ const Queue = () => {
   const [userPosition, setUserPosition] = useState<QueueItem | null>(null);
   const [currentlyServing, setCurrentlyServing] = useState<QueueItem | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Dados mock para demonstração
-  const mockQueueData: QueueItem[] = [
-    {
-      id: "1",
-      usuario_id: "user1",
-      usuario_nome: "João Silva",
-      servico_nome: "Corte + Barba",
-      horario: "09:00",
-      status: "em_atendimento",
-      posicao: 0,
-      tempo_estimado: 15,
-      data: new Date(),
-      presente: true
-    },
-    {
-      id: "2",
-      usuario_id: currentUser?.uid || "user2",
-      usuario_nome: userData?.nome || "Você",
-      servico_nome: "Corte Masculino",
-      horario: "09:30",
-      status: "aguardando",
-      posicao: 1,
-      tempo_estimado: 30,
-      data: new Date(),
-      presente: false
-    },
-    {
-      id: "3",
-      usuario_id: "user3",
-      usuario_nome: "Carlos Santos",
-      servico_nome: "Barba Completa",
-      horario: "10:00",
-      status: "aguardando",
-      posicao: 2,
-      tempo_estimado: 45,
-      data: new Date(),
-      presente: true
-    },
-    {
-      id: "4",
-      usuario_id: "user4",
-      usuario_nome: "Pedro Costa",
-      servico_nome: "Relaxamento",
-      horario: "10:30",
-      status: "aguardando",
-      posicao: 3,
-      tempo_estimado: 75,
-      data: new Date(),
-      presente: true
-    }
-  ];
+  const [error, setError] = useState<string | React.ReactNode | null>(null);
 
   useEffect(() => {
-    // Em produção, usar o Firebase real-time listener
-    setQueueData(mockQueueData);
-    
-    const userInQueue = mockQueueData.find(item => item.usuario_id === currentUser?.uid);
-    setUserPosition(userInQueue || null);
-    
-    const serving = mockQueueData.find(item => item.status === 'em_atendimento');
-    setCurrentlyServing(serving || null);
-    
-    setLoading(false);
+    if (!currentUser) return;
 
-    // Simular atualização em tempo real
-    const interval = setInterval(() => {
-      // Atualizar tempo estimado
-      setQueueData(prev => prev.map(item => ({
-        ...item,
-        tempo_estimado: Math.max(0, item.tempo_estimado - 1)
-      })));
-    }, 60000); // A cada minuto
+    const fetchQueueData = async () => {
+      try {
+        const q = query(
+          collection(db, "fila"),
+          where("status", "in", ["aguardando", "em_atendimento"]),
+          orderBy("status"),
+          orderBy("timestamp", "asc")
+        );
 
-    return () => clearInterval(interval);
-  }, [currentUser?.uid]);
+        const unsubscribe = onSnapshot(q, 
+          (querySnapshot) => {
+            const queueItems: QueueItem[] = [];
+            let currentPosition = 0;
+            let servingItem: QueueItem | null = null;
+
+            querySnapshot.forEach((doc) => {
+              const data = doc.data();
+              const item: QueueItem = {
+                id: doc.id,
+                usuario_id: data.usuario_id,
+                usuario_nome: data.usuario_nome,
+                servico_nome: data.servico_nome,
+                horario: data.horario,
+                status: data.status,
+                posicao: currentPosition,
+                tempo_estimado: data.tempo_estimado || 30,
+                data: data.data.toDate(),
+                presente: data.presente || false,
+                timestamp: data.timestamp || data.data.toMillis()
+              };
+
+              if (item.status === 'em_atendimento') {
+                servingItem = item;
+              } else {
+                currentPosition++;
+              }
+
+              queueItems.push(item);
+            });
+
+            setQueueData(queueItems);
+            setCurrentlyServing(servingItem);
+            setUserPosition(queueItems.find(item => item.usuario_id === currentUser.uid) || null);
+            setLoading(false);
+            setError(null);
+          },
+          (error) => {
+            console.error("Error in snapshot listener:", error);
+            setError(
+              <span>
+                A consulta requer um índice. Crie-o{' '}
+                <a
+                  href="https://console.firebase.google.com/v1/r/project/barbearia-confallony/firestore/indexes?create_composite=ClFwcm9qZWN0cy9iYXJiZWFyaWEtY29uZmFsbG9ueS9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvZmlsYS9pbmRleGVzL18QARoKCgZzdGF0dXMQARoNCgl0aW1lc3RhbXAQARoMCghfX25hbWVfXxAB"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 underline"
+                >
+                  aqui
+                </a>
+              </span>
+            );
+            setLoading(false);
+          }
+        );
+
+        return () => unsubscribe();
+      } catch (error) {
+        console.error("Error setting up queue listener:", error);
+        setError("Erro ao configurar a fila. Tente recarregar a página.");
+        setLoading(false);
+      }
+    };
+
+    fetchQueueData();
+  }, [currentUser]);
 
   const handleConfirmPresence = async () => {
-    if (!userPosition) return;
+    if (!userPosition || !currentUser) return;
 
     try {
-      // Em produção, atualizar no Firestore
-      setQueueData(prev => prev.map(item => 
-        item.id === userPosition.id ? { ...item, presente: true } : item
-      ));
-      
-      setUserPosition(prev => prev ? { ...prev, presente: true } : null);
+      const queueItemRef = doc(db, "fila", userPosition.id);
+      await updateDoc(queueItemRef, {
+        presente: true,
+        timestamp: new Date().getTime()
+      });
 
       toast({
         title: "Presença confirmada!",
@@ -131,19 +135,6 @@ const Queue = () => {
         description: "Erro ao confirmar presença. Tente novamente.",
         variant: "destructive"
       });
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'em_atendimento':
-        return 'bg-green-500';
-      case 'aguardando':
-        return 'bg-yellow-500';
-      case 'concluido':
-        return 'bg-blue-500';
-      default:
-        return 'bg-gray-500';
     }
   };
 
@@ -172,6 +163,24 @@ const Queue = () => {
     );
   }
 
+  if (error) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <h2 className="text-2xl font-bold mb-4">Erro ao carregar a fila</h2>
+            <div className="text-red-500 mb-4">
+              {typeof error === 'string' ? error : error}
+            </div>
+            <Button onClick={() => window.location.reload()} className="btn-hero">
+              Recarregar Página
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="min-h-screen bg-muted/30 py-20">
@@ -181,7 +190,6 @@ const Queue = () => {
             <p className="text-muted-foreground">Acompanhe o andamento da fila em tempo real</p>
           </div>
 
-          {/* Status do usuário */}
           {userPosition && (
             <Card className="barbershop-card border-primary/50">
               <CardHeader>
@@ -220,7 +228,6 @@ const Queue = () => {
             </Card>
           )}
 
-          {/* Cliente em atendimento */}
           {currentlyServing && (
             <Card className="barbershop-card">
               <CardHeader>
@@ -248,7 +255,6 @@ const Queue = () => {
             </Card>
           )}
 
-          {/* Fila de espera */}
           <Card className="barbershop-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -258,51 +264,54 @@ const Queue = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {queueData.filter(item => item.status === 'aguardando').map((item, index) => (
-                  <div
-                    key={item.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border ${
-                      item.usuario_id === currentUser?.uid ? 'border-primary bg-primary/5' : 'border-border'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="text-center min-w-[3rem]">
-                        <div className="text-2xl font-bold text-primary">#{index + 1}</div>
+                {queueData
+                  .filter(item => item.status === 'aguardando')
+                  .sort((a, b) => a.posicao - b.posicao)
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex items-center justify-between p-4 rounded-lg border ${
+                        item.usuario_id === currentUser?.uid ? 'border-primary bg-primary/5' : 'border-border'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="text-center min-w-[3rem]">
+                          <div className="text-2xl font-bold text-primary">#{item.posicao + 1}</div>
+                        </div>
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback>
+                            {item.usuario_nome.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <h4 className="font-semibold">
+                            {item.usuario_id === currentUser?.uid ? "Você" : item.usuario_nome}
+                          </h4>
+                          <p className="text-sm text-muted-foreground">{item.servico_nome}</p>
+                          <p className="text-xs text-muted-foreground">Horário: {item.horario}</p>
+                        </div>
                       </div>
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback>
-                          {item.usuario_nome.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h4 className="font-semibold">
-                          {item.usuario_id === currentUser?.uid ? "Você" : item.usuario_nome}
-                        </h4>
-                        <p className="text-sm text-muted-foreground">{item.servico_nome}</p>
-                        <p className="text-xs text-muted-foreground">Horário: {item.horario}</p>
+                      <div className="text-right space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{item.tempo_estimado}min</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {item.presente ? (
+                            <Badge variant="default" className="text-xs">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Presente
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Ausente
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{item.tempo_estimado}min</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {item.presente ? (
-                          <Badge variant="default" className="text-xs">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Presente
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Ausente
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
                 {queueData.filter(item => item.status === 'aguardando').length === 0 && (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -313,7 +322,6 @@ const Queue = () => {
             </CardContent>
           </Card>
 
-          {/* Informações adicionais */}
           <Card className="barbershop-card">
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">

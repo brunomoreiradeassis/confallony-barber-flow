@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
 interface Product {
   id: number;
@@ -54,93 +54,119 @@ const ProductFlipCardGallery = () => {
     }
   ];
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Duplicate products for infinite loop
-  const cards = [...products, ...products];
-
-  const [renderPosition, setRenderPosition] = useState(0);
-  const positionRef = useRef(0);
-
+  // Habilita rolagem horizontal com a roda do mouse
   useEffect(() => {
-    if (!containerRef.current || !contentRef.current) return;
+    const el = scrollRef.current;
+    if (!el) return;
 
-    const cardWidth = 300 + 64; // Card width + margins
-    const totalWidth = cardWidth * cards.length;
-    const halfWidth = totalWidth / 2;
-    const speed = 60; // px/s
-
-    let animationFrame: number;
-    let lastTimestamp = 0;
-
-    const animate = (timestamp: number) => {
-      if (!lastTimestamp) lastTimestamp = timestamp;
-      const deltaTime = timestamp - lastTimestamp;
-      lastTimestamp = timestamp;
-
-      positionRef.current -= (speed * deltaTime) / 1000;
-
-      if (Math.abs(positionRef.current) >= halfWidth) {
-        positionRef.current += halfWidth;
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
       }
-
-      setRenderPosition(positionRef.current);
-      animationFrame = requestAnimationFrame(animate);
     };
 
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [cards]);
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // Drag-to-scroll
+  let isDown = false;
+  let startX: number;
+  let scrollLeft: number;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDown = true;
+    scrollRef.current.classList.add("cursor-grabbing");
+    startX = e.pageX - scrollRef.current.offsetLeft;
+    scrollLeft = scrollRef.current.scrollLeft;
+  };
+
+  const handleMouseLeave = () => {
+    isDown = false;
+    scrollRef.current?.classList.remove("cursor-grabbing");
+  };
+
+  const handleMouseUp = () => {
+    isDown = false;
+    scrollRef.current?.classList.remove("cursor-grabbing");
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDown || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
 
   return (
     <div className="w-full bg-background py-12 overflow-hidden">
-      <h2 className="text-3xl font-bold text-center mb-8 text-primary">Our Premium Products</h2>
-      <div ref={containerRef} className="w-full h-[400px] relative">
-        <div
-          ref={contentRef}
-          className="absolute flex h-full items-center"
-          style={{
-            transform: `translateX(${renderPosition}px)`,
-            willChange: 'transform'
-          }}
-        >
-          {cards.map((product, index) => (
-            <div
-              key={`${product.id}-${index}`}
-              className="mx-8 w-[300px] h-[350px] flex-shrink-0 relative group perspective-1000"
-            >
-              <div className="relative w-full h-full transition-transform duration-700 transform-style-preserve-3d group-hover:rotate-y-180">
-                {/* Front of the card */}
-                <div className="absolute w-full h-full backface-hidden bg-white rounded-lg shadow-lg overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-3/4 object-cover"
-                  />
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold truncate">{product.name}</h3>
-                    <p className="text-xl font-bold text-primary">${product.price.toFixed(2)}</p>
-                    <p className="text-xs text-gray-500 mt-1">Click to see details</p>
-                  </div>
+      {/* Header */}
+      <div className="text-center space-y-4 mb-5">
+          <h2 className="text-3xl sm:text-4xl font-playfair font-bold text-foreground">
+            Veja os nossos <span className="text-primary">produtos a venda</span>
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Sessão de produtos para você adquirir e usar no dia a dia
+          </p>
+        </div>
+      <div
+        ref={scrollRef}
+        className="w-full h-[400px] flex gap-8 overflow-x-auto px-8 select-none cursor-grab no-scrollbar"
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+      >
+        {products.map((product) => (
+          <div
+            key={product.id}
+            className="w-[300px] h-[350px] flex-shrink-0 relative group perspective-1000"
+          >
+            <div className="relative w-full h-full transition-transform duration-700 transform-style-preserve-3d group-hover:rotate-y-180">
+              {/* Frente */}
+              <div className="absolute w-full h-full backface-hidden bg-white rounded-lg shadow-lg overflow-hidden">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-3/4 object-cover"
+                />
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold truncate">{product.name}</h3>
+                  <p className="text-xl font-bold text-primary">${product.price.toFixed(2)}</p>
+                  <p className="text-xs text-gray-500 mt-1">Click to see details</p>
                 </div>
-                
-                {/* Back of the card */}
-                <div className="absolute w-full h-full backface-hidden bg-gray-50 rounded-lg shadow-lg rotate-y-180 p-6 flex flex-col">
-                  <h3 className="text-xl font-bold mb-2">{product.name}</h3>
-                  <p className="text-gray-600 flex-grow">{product.description}</p>
-                  <div className="mt-4 flex justify-between items-center">
-                    <span className="text-2xl font-bold text-primary">${product.price.toFixed(2)}</span>
-                    <button className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark transition">
-                      Add to Cart
-                    </button>
-                  </div>
+              </div>
+              
+              {/* Verso */}
+              <div className="absolute w-full h-full backface-hidden bg-gray-50 rounded-lg shadow-lg rotate-y-180 p-6 flex flex-col">
+                <h3 className="text-xl font-bold mb-2">{product.name}</h3>
+                <p className="text-gray-600 flex-grow">{product.description}</p>
+                <div className="mt-4 flex justify-between items-center">
+                  <span className="text-2xl font-bold text-primary">${product.price.toFixed(2)}</span>
+                  <button className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark transition">
+                    Add to Cart
+                  </button>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
+
+      {/* CSS para ocultar a barra de rolagem */}
+      <style>{`
+        .no-scrollbar {
+          scrollbar-width: none; /* Firefox */
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none; /* Chrome, Safari */
+        }
+      `}</style>
     </div>
   );
 };
