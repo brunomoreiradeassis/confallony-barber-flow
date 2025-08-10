@@ -1,14 +1,25 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Menu, X, Scissors, User, Calendar, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Menu, X, Scissors, User, Calendar, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import confallonyLogo from "@/assets/confallony-logo-gold.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // This will be managed by auth context later
+  const { currentUser, userData, logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => setIsOpen(!isOpen);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   return (
     <nav className="navbar-glass fixed top-0 left-0 right-0 z-50">
@@ -41,7 +52,7 @@ const Navbar = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {isLoggedIn ? (
+            {currentUser ? (
               <>
                 <Link to="/profile">
                   <Button variant="ghost" size="sm">
@@ -55,7 +66,20 @@ const Navbar = () => {
                     Agendar
                   </Button>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={() => setIsLoggedIn(false)}>
+                <Link to="/queue">
+                  <Button variant="ghost" size="sm">
+                    Fila
+                  </Button>
+                </Link>
+                {userData?.isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="ghost" size="sm">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
                   <LogOut className="h-4 w-4" />
                 </Button>
               </>
@@ -117,7 +141,7 @@ const Navbar = () => {
               </Link>
               
               <div className="border-t border-border pt-4">
-                {isLoggedIn ? (
+                {currentUser ? (
                   <>
                     <Link to="/profile" onClick={toggleMenu}>
                       <Button variant="ghost" className="w-full justify-start mb-2">
@@ -131,11 +155,24 @@ const Navbar = () => {
                         Agendar
                       </Button>
                     </Link>
+                    <Link to="/queue" onClick={toggleMenu}>
+                      <Button variant="ghost" className="w-full justify-start mb-2">
+                        Fila
+                      </Button>
+                    </Link>
+                    {userData?.isAdmin && (
+                      <Link to="/admin" onClick={toggleMenu}>
+                        <Button variant="ghost" className="w-full justify-start mb-2">
+                          <Settings className="h-4 w-4 mr-2" />
+                          Admin
+                        </Button>
+                      </Link>
+                    )}
                     <Button 
                       variant="ghost" 
                       className="w-full justify-start"
                       onClick={() => {
-                        setIsLoggedIn(false);
+                        handleLogout();
                         toggleMenu();
                       }}
                     >

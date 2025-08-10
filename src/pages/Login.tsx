@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,14 +39,20 @@ const Login = () => {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo de volta!",
       });
 
-      navigate("/");
+      // Redirect based on user role
+      const userDoc = await getDoc(doc(db, 'usuarios', userCredential.user.uid));
+      if (userDoc.exists() && userDoc.data().isAdmin) {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch (error: any) {
       console.error("Erro no login:", error);
       let errorMessage = "Erro no login. Verifique suas credenciais.";
