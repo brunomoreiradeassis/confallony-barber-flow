@@ -33,14 +33,21 @@ const About = () => {
   ];
 
   return (
-    <section className="py-20 bg-muted/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative py-20 bg-muted/30">
+      {/* Gradiente de fade para o topo */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-background to-transparent"
+        style={{ zIndex: 1 }}
+      ></div>
+
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Content */}
           <div className="space-y-8">
             <div className="space-y-4">
               <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
-                Sobre a Confallony
+                Sobre a Barbearia Confallony
               </Badge>
               <h2 className="text-3xl sm:text-4xl font-playfair font-bold text-foreground">
                 Tradição e Modernidade em <span className="text-primary">Perfeita Harmonia</span>
@@ -90,7 +97,7 @@ const About = () => {
 
           {/* Image */}
           <div className="relative">
-            <div className="aspect-[4/5] rounded-2xl overflow-hidden">
+            <div className="aspect-[4/5] rounded-2xl overflow-hidden shadow-xl">
               <img
                 src={aboutImage}
                 alt="Profissional barbeiro trabalhando na Barbearia Confallony"
@@ -99,7 +106,7 @@ const About = () => {
             </div>
             
             {/* Floating Card */}
-            <div className="absolute -bottom-6 -left-6 bg-card border border-border rounded-xl p-6 shadow-xl">
+            <div className="absolute -bottom-6 -left-4 bg-card border border-border rounded-xl p-6 shadow-xl">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">15+</div>
                 <div className="text-sm text-muted-foreground">Anos de</div>
@@ -109,6 +116,13 @@ const About = () => {
           </div>
         </div>
       </div>
+
+      {/* Gradiente de fade para o footer */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent"
+        style={{ zIndex: 1 }}
+      ></div>
+
     </section>
   );
 };

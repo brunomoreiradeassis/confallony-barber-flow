@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, Scissors, User, Calendar, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import confallonyLogo from "@/assets/confallony-logo.png";
+import confallonyLogo from "@/assets/confallony-logo-gold.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,9 +21,6 @@ const Navbar = () => {
               alt="Confallony Logo" 
               className="h-10 w-auto"
             />
-            <span className="text-xl font-playfair font-bold text-foreground">
-              Barbearia <span className="text-primary">Confallony</span>
-            </span>
           </Link>
 
           {/* Desktop Navigation */}

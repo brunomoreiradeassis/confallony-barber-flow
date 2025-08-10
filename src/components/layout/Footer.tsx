@@ -16,13 +16,13 @@ const Footer = () => {
             </p>
             <div className="flex space-x-4">
               <Button variant="ghost" size="sm" className="p-2">
-                <Instagram className="h-5 w-5 text-primary" />
+                <Instagram className="h-10 w-10 text-primary" />
               </Button>
               <Button variant="ghost" size="sm" className="p-2">
-                <Facebook className="h-5 w-5 text-primary" />
+                <Facebook className="h-10 w-10 text-primary" />
               </Button>
               <Button variant="ghost" size="sm" className="p-2">
-                <Twitter className="h-5 w-5 text-primary" />
+                <Twitter className="h-10 w-10 text-primary" />
               </Button>
             </div>
           </div>
@@ -34,16 +34,16 @@ const Footer = () => {
               <div className="flex items-center space-x-3">
                 <MapPin className="h-5 w-5 text-primary flex-shrink-0" />
                 <span className="text-muted-foreground">
-                  Rua das Flores, 123 - Centro, São Paulo - SP
+                  Av. Frei Confallone, QD. QC-31, LT. 09, Sala 4, Conjunto Vera Cruz 2, CEP: 74.495-060
                 </span>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="h-5 w-5 text-primary flex-shrink-0" />
-                <span className="text-muted-foreground">(11) 99999-9999</span>
+                <span className="text-muted-foreground">(62) 9 9842-8528</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-primary flex-shrink-0" />
-                <span className="text-muted-foreground">contato@barbeariaconfallony.com</span>
+                <span className="text-muted-foreground">viniciusoduque@gmail.com</span>
               </div>
             </div>
           </div>
@@ -55,9 +55,8 @@ const Footer = () => {
               <div className="flex items-center space-x-3">
                 <Clock className="h-5 w-5 text-primary flex-shrink-0" />
                 <div className="text-muted-foreground">
-                  <div>Segunda a Sexta: 09:00 - 20:00</div>
-                  <div>Sábado: 08:00 - 18:00</div>
-                  <div>Domingo: 09:00 - 17:00</div>
+                  <div>Segunda a Sexta: 09:00 - 21:00</div>
+                  <div>Sábado: 09:00 - 21:00</div>
                 </div>
               </div>
             </div>
@@ -91,7 +90,7 @@ const Footer = () => {
 
         <div className="border-t border-border mt-8 pt-8 text-center">
           <p className="text-muted-foreground">
-            © 2024 Barbearia Confallony. Todos os direitos reservados.
+            © 2025 Barbearia Confallony. Todos os direitos reservados.
           </p>
         </div>
       </div>
