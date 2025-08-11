@@ -46,13 +46,7 @@ const Login = () => {
         description: "Bem-vindo de volta!",
       });
 
-      // Redirect based on user role
-      const userDoc = await getDoc(doc(db, 'usuarios', userCredential.user.uid));
-      if (userDoc.exists() && userDoc.data().isAdmin) {
-        navigate("/admin");
-      } else {
-        navigate("/queue");
-      }
+      navigate("/profile");
     } catch (error: any) {
       console.error("Erro no login:", error);
       let errorMessage = "Erro no login. Verifique suas credenciais.";

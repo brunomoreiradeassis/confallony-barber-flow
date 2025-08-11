@@ -13,8 +13,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const { currentUser, userData, logout } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
   const toggleMenu = () => setIsOpen(!isOpen);

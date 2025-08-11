@@ -86,10 +86,11 @@ const Register = () => {
         nome: formData.nome,
         email: formData.email,
         telefone: formData.telefone,
-        dataNascimento: formData.dataNascimento,
-        dataRegistro: new Date(),
-        pontosFidelidade: 0,
-        saldoCarteira: 0,
+        data_nascimento: formData.dataNascimento,
+        data_registro: new Date(),
+        pontos_fidelidade: 0,
+        saldo: 0,
+        isAdmin: false,
         ativo: true
       });
 
@@ -98,7 +99,7 @@ const Register = () => {
         description: "Bem-vindo à Barbearia Confallony!",
       });
 
-      navigate("/queue");
+      navigate("/profile");
     } catch (error: any) {
       console.error("Erro no cadastro:", error);
       toast({
