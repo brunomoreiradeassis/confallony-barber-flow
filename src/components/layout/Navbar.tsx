@@ -75,10 +75,10 @@ const Navbar = () => {
                         {userData?.nome ? getInitials(userData.nome) : <User className="h-4 w-4" />}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-medium">{userData?.nome.split(' ')[0]}</span>
-                      <span className="text-xs text-muted-foreground">Minha conta</span>
-                    </div>
+                     <div className="flex flex-col items-start">
+                       <span className="text-sm font-medium">{userData?.nome ? userData.nome.split(' ')[0] : currentUser?.displayName?.split(' ')[0] || 'Usuário'}</span>
+                       <span className="text-xs text-muted-foreground">Minha conta</span>
+                     </div>
                     <ChevronDown className="h-4 w-4 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -91,10 +91,10 @@ const Navbar = () => {
                           {userData?.nome ? getInitials(userData.nome) : <User className="h-5 w-5" />}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex flex-col">
-                        <p className="text-sm font-medium">{userData?.nome}</p>
-                        <p className="text-xs text-muted-foreground">{userData?.email}</p>
-                      </div>
+                       <div className="flex flex-col">
+                         <p className="text-sm font-medium">{userData?.nome || currentUser?.displayName || 'Usuário'}</p>
+                         <p className="text-xs text-muted-foreground">{userData?.email || currentUser?.email}</p>
+                       </div>
                     </div>
                   </div>
                   <DropdownMenuSeparator />
@@ -188,10 +188,10 @@ const Navbar = () => {
                           {userData?.nome ? getInitials(userData.nome) : <User className="h-4 w-4" />}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">{userData?.nome}</p>
-                        <p className="text-xs text-muted-foreground">{userData?.email}</p>
-                      </div>
+                       <div>
+                         <p className="text-sm font-medium">{userData?.nome || currentUser?.displayName || 'Usuário'}</p>
+                         <p className="text-xs text-muted-foreground">{userData?.email || currentUser?.email}</p>
+                       </div>
                     </div>
                     <Link to="/profile" onClick={toggleMenu}>
                       <Button variant="ghost" className="w-full justify-start mb-2">
