@@ -31,6 +31,7 @@ interface Appointment {
   id?: string;
   usuario_id: string;
   usuario_nome: string;
+  usuario_email: string;
   servico_id: string;
   servico_nome: string;
   preco: number;
@@ -82,6 +83,7 @@ const Booking = () => {
           id: doc.id,
           usuario_id: data.usuario_id,
           usuario_nome: data.usuario_nome,
+          usuario_email: data.usuario_email || '',
           servico_id: data.servico_id,
           servico_nome: data.servico_nome,
           preco: data.preco,
@@ -217,7 +219,8 @@ const Booking = () => {
 
       const newAppointment: Appointment = {
         usuario_id: currentUser.uid,
-        usuario_nome: userData.nome, // Usando o nome do usuário do AuthContext
+        usuario_nome: userData.nome || currentUser.displayName || 'Usuário',
+        usuario_email: userData.email || currentUser.email || '',
         servico_id: selectedService.id,
         servico_nome: selectedService.nome,
         preco: selectedService.preco,
@@ -235,7 +238,7 @@ const Booking = () => {
 
       toast({
         title: "Agendamento confirmado!",
-        description: `Olá ${userData.nome}, seu agendamento para ${selectedService.nome} no dia ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })} às ${selectedTime} foi confirmado.`
+        description: `Olá ${userData?.nome || currentUser?.displayName || 'Usuário'}, seu agendamento para ${selectedService.nome} no dia ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })} às ${selectedTime} foi confirmado.`
       });
 
       setStep(1);

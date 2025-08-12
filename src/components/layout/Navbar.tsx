@@ -76,7 +76,7 @@ const Navbar = () => {
                       </AvatarFallback>
                     </Avatar>
                      <div className="flex flex-col items-start">
-                       <span className="text-sm font-medium">{userData?.nome ? userData.nome.split(' ')[0] : currentUser?.displayName?.split(' ')[0] || 'Usuário'}</span>
+                       <span className="text-sm font-medium">{userData?.nome || currentUser?.displayName || 'Usuário'}</span>
                        <span className="text-xs text-muted-foreground">Minha conta</span>
                      </div>
                     <ChevronDown className="h-4 w-4 opacity-50" />
