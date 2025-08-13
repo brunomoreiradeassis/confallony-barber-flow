@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, Scissors, User, Calendar, LogOut, Settings, ChevronDown } from "lucide-react";
+import { Menu, X, Scissors, User, Calendar, LogOut, Settings, ChevronDown, Sun, Moon, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -15,9 +15,27 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const Navbar = () => {
   const { currentUser, userData, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const navigate = useNavigate();
 
   const toggleMenu = () => setIsOpen(!isOpen);
+  
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+    document.documentElement.classList.toggle('dark');
+  };
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -36,8 +54,7 @@ const Navbar = () => {
     <nav className="bg-background border-b border-border fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-
-          {/* Logo/Brand */}
+          {/* Logo/Brand - Left */}
           <div className="flex-shrink-0 flex items-center">
             <Link to="/" className="flex items-center">
               <Scissors className="h-6 w-6 text-primary mr-2" />
@@ -63,8 +80,35 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Desktop Profile Dropdown - Right */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Desktop Right Side - Theme, Fullscreen, Profile */}
+          <div className="hidden md:flex items-center space-x-3">
+            {/* Theme Toggle Button */}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={toggleTheme}
+              className="rounded-full"
+              aria-label="Alternar tema"
+            >
+              {darkMode ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </Button>
+            
+            {/* Fullscreen Button */}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={toggleFullScreen}
+              className="rounded-full"
+              aria-label="Maximizar tela"
+            >
+              <Maximize2 className="h-5 w-5" />
+            </Button>
+            
+            {/* Profile Dropdown */}
             {currentUser ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -136,7 +180,33 @@ const Navbar = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center space-x-2">
+            {/* Theme Toggle Button - Mobile */}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={toggleTheme}
+              className="rounded-full"
+              aria-label="Alternar tema"
+            >
+              {darkMode ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </Button>
+            
+            {/* Fullscreen Button - Mobile */}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={toggleFullScreen}
+              className="rounded-full"
+              aria-label="Maximizar tela"
+            >
+              <Maximize2 className="h-5 w-5" />
+            </Button>
+            
             <Button variant="ghost" size="sm" onClick={toggleMenu}>
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>

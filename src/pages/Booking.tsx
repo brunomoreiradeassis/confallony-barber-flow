@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, query } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
@@ -32,11 +32,13 @@ interface Appointment {
   usuario_id: string;
   usuario_nome: string;
   usuario_email: string;
+  usuario_telefone: string;
   servico_id: string;
   servico_nome: string;
   preco: number;
   data: Date;
-  horario: string;
+  hora_agendamento: number;
+  minuto_agendamento: number;
   forma_pagamento: string;
   status: 'aguardando' | 'em_atendimento' | 'concluido' | 'confirmado';
   data_criacao: Date;
@@ -57,6 +59,7 @@ const Booking = () => {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]);
+  const [userAppointments, setUserAppointments] = useState<Appointment[]>([]);
 
   const mockServices: Service[] = [
     { id: "1", nome: "Corte Masculino", preco: 30, duracao: 30, descricao: "Corte tradicional masculino" },
@@ -69,7 +72,10 @@ const Booking = () => {
   useEffect(() => {
     setServices(mockServices);
     fetchExistingAppointments();
-  }, []);
+    if (currentUser) {
+      fetchUserAppointments();
+    }
+  }, [currentUser]);
 
   const fetchExistingAppointments = async () => {
     try {
@@ -84,11 +90,13 @@ const Booking = () => {
           usuario_id: data.usuario_id,
           usuario_nome: data.usuario_nome,
           usuario_email: data.usuario_email || '',
+          usuario_telefone: data.usuario_telefone || '',
           servico_id: data.servico_id,
           servico_nome: data.servico_nome,
           preco: data.preco,
           data: data.data.toDate(),
-          horario: data.horario,
+          hora_agendamento: data.hora_agendamento,
+          minuto_agendamento: data.minuto_agendamento,
           forma_pagamento: data.forma_pagamento,
           status: data.status,
           data_criacao: data.data_criacao.toDate(),
@@ -109,6 +117,51 @@ const Booking = () => {
     }
   };
 
+  const fetchUserAppointments = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const q = query(
+        collection(db, 'fila'),
+        where('usuario_id', '==', currentUser.uid)
+      );
+      const querySnapshot = await getDocs(q);
+      const appointments: Appointment[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        appointments.push({
+          id: doc.id,
+          usuario_id: data.usuario_id,
+          usuario_nome: data.usuario_nome,
+          usuario_email: data.usuario_email || '',
+          usuario_telefone: data.usuario_telefone || '',
+          servico_id: data.servico_id,
+          servico_nome: data.servico_nome,
+          preco: data.preco,
+          data: data.data.toDate(),
+          hora_agendamento: data.hora_agendamento,
+          minuto_agendamento: data.minuto_agendamento,
+          forma_pagamento: data.forma_pagamento,
+          status: data.status,
+          data_criacao: data.data_criacao.toDate(),
+          duracao: data.duracao,
+          presente: data.presente || false,
+          timestamp: data.timestamp || data.data_criacao.toMillis()
+        });
+      });
+      
+      setUserAppointments(appointments);
+    } catch (error) {
+      console.error("Error fetching user appointments:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar seus agendamentos.",
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
     if (selectedDate) {
       generateTimeSlots();
@@ -118,6 +171,21 @@ const Booking = () => {
   const generateTimeSlots = () => {
     if (!selectedDate) return;
 
+    // Verifica se o usuário já tem agendamento neste dia
+    const hasAppointmentOnSelectedDate = userAppointments.some(app => 
+      isSameDay(app.data, selectedDate)
+    );
+
+    if (hasAppointmentOnSelectedDate) {
+      toast({
+        title: "Atenção",
+        description: "Você já tem um agendamento marcado para este dia. Escolha outra data.",
+        variant: "destructive"
+      });
+      setSelectedDate(undefined);
+      return;
+    }
+
     const slots: TimeSlot[] = [];
     const startHour = 8;
     const endHour = 19;
@@ -125,7 +193,7 @@ const Booking = () => {
     const dateAppointments = existingAppointments.filter(app => 
       isSameDay(app.data, selectedDate)
     );
-    const bookedTimes = dateAppointments.map(app => app.horario);
+    const bookedTimes = dateAppointments.map(app => `${app.hora_agendamento.toString().padStart(2, '0')}:${app.minuto_agendamento.toString().padStart(2, '0')}`);
 
     for (let hour = startHour; hour <= endHour; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
@@ -161,15 +229,6 @@ const Booking = () => {
       toast({
         title: "Erro",
         description: "Você precisa estar logado para agendar.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!userData) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar seus dados. Por favor, recarregue a página.",
         variant: "destructive"
       });
       return;
@@ -211,21 +270,41 @@ const Booking = () => {
       return;
     }
 
+    // Verificação final para garantir que não há agendamento no mesmo dia
+    const hasAppointmentOnSelectedDate = userAppointments.some(app => 
+      isSameDay(app.data, selectedDate)
+    );
+
+    if (hasAppointmentOnSelectedDate) {
+      toast({
+        title: "Erro",
+        description: "Você já tem um agendamento marcado para este dia.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const appointmentDate = new Date(selectedDate);
       const [hours, minutes] = selectedTime.split(':').map(Number);
       appointmentDate.setHours(hours, minutes, 0, 0);
 
+      const userNome = userData?.nome || currentUser.displayName || 'Usuário';
+      const userEmail = userData?.email || currentUser.email || '';
+      const userTelefone = userData?.telefone || 'Não informado';
+
       const newAppointment: Appointment = {
         usuario_id: currentUser.uid,
-        usuario_nome: userData.nome || currentUser.displayName || 'Usuário',
-        usuario_email: userData.email || currentUser.email || '',
+        usuario_nome: userNome,
+        usuario_email: userEmail,
+        usuario_telefone: userTelefone,
         servico_id: selectedService.id,
         servico_nome: selectedService.nome,
         preco: selectedService.preco,
         data: appointmentDate,
-        horario: selectedTime,
+        hora_agendamento: hours,
+        minuto_agendamento: minutes,
         forma_pagamento: paymentMethod,
         status: 'aguardando',
         data_criacao: new Date(),
@@ -238,7 +317,7 @@ const Booking = () => {
 
       toast({
         title: "Agendamento confirmado!",
-        description: `Olá ${userData?.nome || currentUser?.displayName || 'Usuário'}, seu agendamento para ${selectedService.nome} no dia ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })} às ${selectedTime} foi confirmado.`
+        description: `Olá ${userNome}, seu agendamento para ${selectedService.nome} no dia ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })} às ${selectedTime} foi confirmado.`
       });
 
       setStep(1);
@@ -246,7 +325,8 @@ const Booking = () => {
       setSelectedDate(new Date());
       setSelectedTime("");
       setPaymentMethod("");
-      await fetchExistingAppointments(); // Atualiza a lista de agendamentos
+      await fetchExistingAppointments();
+      await fetchUserAppointments();
     } catch (error) {
       console.error("Error creating booking:", error);
       toast({
@@ -262,6 +342,16 @@ const Booking = () => {
     if (isToday(date)) return "Hoje";
     if (isTomorrow(date)) return "Amanhã";
     return format(date, "dd/MM", { locale: ptBR });
+  };
+
+  // Função para desabilitar domingos e datas com agendamentos
+  const isDateDisabled = (date: Date) => {
+    return (
+      date < new Date() || 
+      date > addDays(new Date(), 30) ||
+      date.getDay() === 0 ||
+      userAppointments.some(app => isSameDay(app.data, date))
+    );
   };
 
   return (
@@ -350,7 +440,7 @@ const Booking = () => {
                       mode="single"
                       selected={selectedDate}
                       onSelect={setSelectedDate}
-                      disabled={(date) => date < new Date() || date > addDays(new Date(), 30)}
+                      disabled={isDateDisabled}
                       className="rounded-md border"
                       locale={ptBR}
                     />
@@ -401,6 +491,9 @@ const Booking = () => {
                   <p className="text-sm">Serviço: {selectedService.nome}</p>
                   <p className="text-sm">Data: {format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}</p>
                   <p className="text-sm">Horário: {selectedTime}</p>
+                  <p className="text-sm">Nome: {userData?.nome || currentUser?.displayName || 'Não informado'}</p>
+                  <p className="text-sm">Email: {userData?.email || currentUser?.email || 'Não informado'}</p>
+                  <p className="text-sm">Telefone: {userData?.telefone || 'Não informado'}</p>
                   <p className="text-lg font-bold text-primary">Total: R$ {selectedService.preco}</p>
                 </div>
 
